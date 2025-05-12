@@ -1,1 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Instant Video Call</title>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    video { width: 45%; margin: 10px; }
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
+  </style>
+</head>
+<body>
+  <video id="localVideo" autoplay muted playsinline></video>
+  <video id="remoteVideo" autoplay playsinline></video>
+
+  <script>
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+
+    const roomId = "my-room"; // fixed "room" name
+    const isInitiator = Math.random() < 0.5; // one client becomes caller randomly
+
+    const peer = new Peer(undefined, {
+      host: "peerjs.com",
+      secure: true,
+      port: 443,
+    });
+
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+      localVideo.srcObject = stream;
+
+      peer.on('open', id => {
+        if (isInitiator) {
+          const conn = peer.connect(roomId);
+          const call = peer.call(roomId, stream);
+          call.on('stream', remoteStream => {
+            remoteVideo.srcObject = remoteStream;
+          });
+        }
+      });
+
+      peer.on('connection', conn => {
+        conn.on('open', () => console.log('Connected to initiator'));
+      });
+
+      peer.on('call', call => {
+        call.answer(stream);
+        call.on('stream', remoteStream => {
+          remoteVideo.srcObject = remoteStream;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
 
